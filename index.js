@@ -5,11 +5,11 @@ const eol = '\n'
 const tab = ' '
 
 const inputs = [
-    'a_example.in',
-    'b_small.in',
-    'c_medium.in',
-    'd_quite_big.in',
-    'e_also_big.in'
+    'inputs/a_example.in',
+    'inputs/b_small.in',
+    'inputs/c_medium.in',
+    'inputs/d_quite_big.in',
+    'inputs/e_also_big.in'
 ]
 
 function chunkToLines(input) {
