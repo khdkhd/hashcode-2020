@@ -54,15 +54,12 @@ const greedySolver = (maxSlices, pizzaSizes) => {
 
 const recuriveSolver = (maxSlices, pizzaSizes) => {
   const pickPizzaOrNot = (maxSlices, pizzaIndex = 0) => {
-    const indent = "    ".repeat(pizzaIndex);
     if (pizzaIndex >= pizzaSizes.length) {
       return {
         sliceCount: 0,
         pizzas: []
       };
     }
-
-    console.warn(indent, `Solving ${maxSlices} slices from ${pizzaIndex}`);
 
     const currentPizzaSize = pizzaSizes[pizzaIndex];
     if (currentPizzaSize > maxSlices) {
@@ -78,42 +75,25 @@ const recuriveSolver = (maxSlices, pizzaSizes) => {
     );
     const solutionWithout = pickPizzaOrNot(maxSlices, pizzaIndex + 1);
 
-    console.warn(
-      indent,
-      `Solution with: ${pizzaIndex}: ${solutionWith.sliceCount}`
-    );
-    console.warn(
-      indent,
-      `Solution without: ${pizzaIndex}: ${solutionWithout.sliceCount}`
-    );
-
     let solution;
     if (
       solutionWith.sliceCount + currentPizzaSize >
       solutionWithout.sliceCount
     ) {
-      console.warn(indent, `--> ${pizzaIndex} should be taken`);
       solution = {
         sliceCount: solutionWith.sliceCount + currentPizzaSize,
         pizzas: [pizzaIndex, ...solutionWith.pizzas]
       };
     } else {
-      console.warn(indent, `--> ${pizzaIndex} should NOT be taken`);
       solution = {
         sliceCount: solutionWithout.sliceCount,
         pizzas: [...solutionWithout.pizzas]
       };
     }
-    const json = JSON.stringify(solution);
-    console.warn(
-      indent,
-      `Solution for ${maxSlices} starting at ${pizzaIndex}: ${json}`
-    );
     return solution;
   };
 
   const solve = () => {
-    console.warn(pizzaSizes);
     const solution = pickPizzaOrNot(maxSlices);
     return solution.pizzas;
   };
@@ -189,7 +169,6 @@ const leanDynamicSolver = (maxSlices, pizzaSizes) => {
     return id;
   };
 
-  const solutions = new Array(pizzaTypeCount + 1);
 
   solutions[0] = new Array(maxSlices + 1);
   for (let i = 0; i < solutions[0].length; i++) {
@@ -198,6 +177,7 @@ const leanDynamicSolver = (maxSlices, pizzaSizes) => {
       pizzas: []
     };
   }
+
 
   for (
     let currentPizzaIndex = 1;
@@ -248,7 +228,7 @@ const leanDynamicSolver = (maxSlices, pizzaSizes) => {
         } else {
           solution = {
             sliceCount: solutionWithout.sliceCount,
-            pizzas: [...solutionWithout.pizzas]
+            pizzas: solutionWithout.pizzas
           };
         }
         solutions[index(currentPizzaIndex)][currentMaxSlices] = solution;
