@@ -7,13 +7,16 @@ list(APPEND SOLVERS
 )
 
 set(EXPORT_SOLVERS_H "${CMAKE_BINARY_DIR}/solvers.hpp")
+set(EXPORT_SOLVERS_H_GENERATOR "${CMAKE_CURRENT_SOURCE_DIR}/solvers.cmake")
 
 add_custom_command(
     OUTPUT "${EXPORT_SOLVERS_H}"
     COMMAND ${CMAKE_COMMAND}
         -D SOLVERS="${SOLVERS}"
         -D EXPORT_SOLVERS_H="${EXPORT_SOLVERS_H}"
-        -P "${CMAKE_CURRENT_SOURCE_DIR}/export-solvers.cmake"
+        -P "${EXPORT_SOLVERS_H_GENERATOR}"
+    DEPENDS
+        "${EXPORT_SOLVERS_H_GENERATOR}"
 )
 
 add_executable(${PROJECT_NAME}
