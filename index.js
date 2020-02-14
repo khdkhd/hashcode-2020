@@ -1,4 +1,6 @@
 const fs = require('fs')
+const greedySolver = require('./greedy-solver')
+const optimisticSolver = require('./optimistic-solver');
 
 const charset = 'utf-8'
 const eol = '\n'
@@ -12,19 +14,13 @@ const inputs = [
     'inputs/e_also_big.in'
 ]
 
-function chunkToLines(input) {
-    const lines = input.split(eol)
-    lines.pop()
-    return lines
-}
-
 function chunkToNumbers(line) {
     return line.split(tab).map(Number)
 }
 
 function parse(file) {
     const input = fs.readFileSync(file, charset)
-    const lines = chunkToLines(input)
+    const lines = input.split(eol)
     const [maxCapacity, populationCount] = chunkToNumbers(lines.shift())
     const weights = chunkToNumbers(lines.shift())
     return {
@@ -35,14 +31,17 @@ function parse(file) {
 function solve({ maxCapacity = 0, populationCount = 0, weights = [] }) {
     console.log(`solving with maxCapacity=${
         maxCapacity
-    } and populationCount=${
+        } and populationCount=${
         populationCount
-    }`)
+        }`)
+    return optimisticSolver({ maxCapacity, populationCount, weights })
 }
 
 function run() {
     for (const input of inputs) {
-        console.log(solve(parse(input)))
+        const instance = parse(input)
+        const score = solve(instance)
+        console.log(`score=${score}, gap=${instance.maxCapacity - score}`)
     }
 }
 
