@@ -6,6 +6,7 @@
 #include <istream>
 #include <ostream>
 #include <random>
+#include <map>
 
 class Item
 {
@@ -45,9 +46,11 @@ operator<<(std::ostream &out, const Item &item)
         return out;
 }
 
-struct Solution
+class Solution
 {
+public:
         unsigned int value;
+        unsigned int weight;
         std::vector<Item> items;
 };
 
@@ -128,6 +131,11 @@ bool compareItems(const Item i1, const Item i2)
         return (i1.getValue() < i2.getValue());
 }
 
+bool compareItemsReversed(const Item i1, const Item i2)
+{
+        return (i1.getValue() > i2.getValue());
+}
+
 Solution solveLarge(std::vector<Item> &items, const unsigned int maxWeight, const unsigned int batchSize = 8)
 {
         const auto itemCount = items.size();
@@ -154,6 +162,87 @@ Solution solveLarge(std::vector<Item> &items, const unsigned int maxWeight, cons
                 std::cerr << "Intermediate solution" << std::endl
                           << solution << std::endl
                           << std::endl;
+        }
+        return solution;
+}
+
+Solution solveGreedy(const std::vector<Item> &items, const unsigned int maxWeight)
+{
+        Solution solution;
+        solution.weight = 0;
+        solution.value = 0;
+        for (const auto &item : items)
+        {
+                auto currentItemWeight = item.getWeight();
+                if (currentItemWeight <= (maxWeight - solution.weight))
+                {
+                        solution.value += item.getValue();
+                        solution.weight += item.getWeight();
+                        solution.items.push_back(item);
+                }
+                else
+                {
+                        break;
+                }
+        }
+        return solution;
+}
+
+template <typename T>
+T remove_at(std::vector<T> &v, typename std::vector<T>::size_type n)
+{
+        T ans = std::move_if_noexcept(v[n]);
+        v[n] = std::move_if_noexcept(v.back());
+        v.pop_back();
+        return ans;
+}
+
+Solution solveLarger(std::vector<Item> &items, const unsigned int maxWeight, const unsigned short bucketSize = 20, unsigned short maxIterations = 100)
+{
+        std::map<unsigned short, std::vector<Item>> index;
+        for (const auto &item : items)
+        {
+                const unsigned short bucket = item.getWeight() / bucketSize;
+                index[bucket].push_back(item);
+        }
+
+        Solution solution = solveGreedy(items, maxWeight);
+
+        unsigned short interationCount{0};
+        while (solution.weight < maxWeight && interationCount < maxIterations)
+        {
+                const unsigned int remaining = maxWeight - solution.weight;
+                std::cerr << "Remaining: " << remaining << std::endl;
+                std::cerr << solution << std::endl;
+
+                const auto chosen = rand() % solution.items.size();
+
+                std::cerr << "Removing " << chosen << std::endl;
+
+                Item removed = solution.items[chosen];
+
+                remove_at<Item>(solution.items, chosen);
+                solution.value -= removed.getValue();
+                solution.weight -= removed.getWeight();
+
+                const auto searchedWeight = remaining + removed.getWeight();
+                const auto bucketToSearchInto = searchedWeight / bucketSize;
+
+                const auto &bucket = index[bucketToSearchInto];
+                std::vector<Item> candidates;
+                std::copy_if(bucket.begin(), bucket.end(), std::back_inserter(candidates), [searchedWeight](Item i) { return i.getWeight() <= searchedWeight; });
+                if (candidates.size() > 0)
+                {
+                        std::sort(candidates.begin(), candidates.end(), compareItemsReversed);
+                        const auto itemToAdd = candidates[0];
+                        solution.items.push_back(itemToAdd);
+                        solution.value += itemToAdd.getValue();
+                        solution.weight += itemToAdd.getWeight();
+                }
+                else
+                {
+                        std::cerr << "No matching bucket" << std::endl;
+                }
         }
         return solution;
 }
@@ -185,13 +274,18 @@ int main()
                     return item;
             });
 
-        const auto solution = solveLarge(items, maxWeight);
+        const auto solution = solveLarger(items, maxWeight);
 
+        unsigned int i{0};
         std::cerr << "Overall value: " << solution.value << std::endl;
 
         std::cout << solution.items.size() << std::endl;
         for (const auto item : solution.items)
         {
+                i += item.getWeight();
                 std::cout << item.getIndex() << " ";
         }
+
+        std::cerr << std::endl
+                  << i << std::endl;
 }
