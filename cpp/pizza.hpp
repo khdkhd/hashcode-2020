@@ -1,8 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <functional>
 #include <istream>
+#include <map>
 #include <ostream>
+#include <variant>
 #include <vector>
 
 using PizzaIndex_t = unsigned int;
@@ -24,6 +27,9 @@ struct PizzaSolution {
 bool operator>(const PizzaSolution &, const PizzaSolution &);
 std::ostream &operator<<(std::ostream &, const PizzaSolution &);
 
-using Solver = std::function<PizzaSolution(const PizzaProblem &)>;
+using SolverOptionValue = std::variant<std::intmax_t, double, float, std::string>;
+using SolverOptionKey = std::string;
+using SolverOptions = std::map<SolverOptionKey, SolverOptionValue>;
+using Solver = std::function<PizzaSolution(const PizzaProblem &, const SolverOptions &)>;
 
 Solver createSolver(const std::string &);
