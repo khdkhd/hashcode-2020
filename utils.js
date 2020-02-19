@@ -20,14 +20,8 @@ function shuffle(list = []) {
     return list
 }
 
-function stringify({ maxCapacity, populationCount, solution }) {
-    return `${maxCapacity} ${populationCount} [\n`
-        + partition(solution.items).map(partition => partition.join(',\t')).join(',\n')
-        + '\n]\n';
-}
-
-function dump({ maxCapacity, populationCount, solution }, filePath) {
-    fs.writeFileSync(filePath, stringify({ maxCapacity, populationCount, solution }));
+function dump(items, filePath) {
+    fs.writeFileSync(filePath, `${items.length}\n${items.join(' ')}\n`);
 }
 
 module.exports = {
