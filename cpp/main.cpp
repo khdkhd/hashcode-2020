@@ -67,8 +67,8 @@ main(int argc, char const **argv) {
         *input >> problem;
         *output << solve(problem, SolverOptions{
             {"max-iteration", getMaxIteration()},
-        }) << std::endl;
+        });
     }
-    
+
     return 0;
 }

@@ -2,7 +2,7 @@
 
 std::ostream &
 operator<<(std::ostream &out, const PizzaSolution &solution) {
-    out << solution.sliceCount << std::endl;
+    out << solution.pizze.size() << std::endl;
     std::copy(
         solution.pizze.begin(),
         solution.pizze.end(),
