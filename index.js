@@ -28,19 +28,19 @@ function parse(file) {
     }
 }
 
-function solve({ maxCapacity = 0, populationCount = 0, weights = [] }, filename ) {
+function solve({ maxCapacity = 0, populationCount = 0, weights = [] }) {
     console.log(`solving with maxCapacity=${
         maxCapacity
         } and populationCount=${
         populationCount
         }`)
-    return optimisticSolver({ maxCapacity, populationCount, weights }, filename)
+    return optimisticSolver({ maxCapacity, populationCount, weights })
 }
 
 function run() {
     for (const input of inputs) {
         const instance = parse(input);
-        const score = solve(instance, `${input}.out`)
+        const score = solve(instance)
         console.log(`score=${score}, gap=${instance.maxCapacity - score}`)
     }
 }

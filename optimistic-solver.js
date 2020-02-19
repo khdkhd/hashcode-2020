@@ -1,5 +1,3 @@
-const fs = require('fs');
-
 function createNode(level, weight) {
     return {
         level,
@@ -30,24 +28,7 @@ function maxSolution(a, b) {
     return a.score >= b.score ? a : b;
 }
 
-function partitionItems(items, spacing = 16) {
-    const output = [];
-    for (let i = 0; i < items.length; i += spacing) {
-        output[output.length] = items.slice(i, i + spacing);
-    }
-    return output;
-}
-
-function dump({ maxCapacity, populationCount, solution }, filename) {
-    const output = `${maxCapacity} ${populationCount} [\n`
-        + partitionItems(solution.items)
-            .map(partition => partition.join(',\t'))
-            .join(',\n')
-        + '\n]\n';
-    fs.writeFileSync(filename, output);
-}
-
-function optimisticSolver({ maxCapacity, populationCount, weights }, filename) {
+function optimisticSolver({ maxCapacity, populationCount, weights }) {
     let solution = initializeSolution(0);
 
     for (let i = 1; i < populationCount; ++i) {
@@ -60,10 +41,7 @@ function optimisticSolver({ maxCapacity, populationCount, weights }, filename) {
             solution = localMaximum;
         }
     }
-    if (filename) {
-        dump({ maxCapacity, populationCount, solution }, filename);
-    }
-    return solution.score;
+    return solution;
 }
 
 module.exports = optimisticSolver;
