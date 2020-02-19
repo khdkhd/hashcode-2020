@@ -1,10 +1,21 @@
 #include <pizza.hpp>
 
 #include <algorithm>
+#include <map>
 #include <random>
 #include <tuple>
 
-Solver shuffleSolver([](const PizzaProblem &problem) {
+namespace {
+    std::intmax_t
+    getMaxIteration(const SolverOptions &options) {
+        const auto entry = options.find("max-iteration");
+        return entry != options.end()
+            ? std::get<std::intmax_t>(entry->second)
+            : 1000;
+    }
+}
+
+Solver shuffleSolver([](const PizzaProblem &problem, const SolverOptions &options) {
     using Pizza = std::tuple<PizzaIndex_t, PizzaSliceCount_t>;
 
     PizzaIndex_t index{0};
@@ -18,8 +29,9 @@ Solver shuffleSolver([](const PizzaProblem &problem) {
         }
     );
 
-    unsigned int retry = 1000;
-    const auto shouldContinue = [&retry]() {return --retry > 0;};
+    auto retry = getMaxIteration(options);
+    const auto shouldContinue = [&retry]() { return --retry > 0; };
+
     std::random_device rd;
     std::mt19937 g(rd());
     PizzaSolution bestSolution;

@@ -1,13 +1,28 @@
 #include <pizza.hpp>
 
-#include <streambuf>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <streambuf>
 
 void
 usage() {
     std::cerr << "Usage: hashcode-2020-pizza <SOLVER> INPUT_FILE..." << std::endl;
     std::exit(1);
+}
+
+std::intmax_t
+getMaxIteration() {
+    const auto envvar_value = std::getenv("PIZZA_MAX_ITERATION");
+    if (envvar_value != nullptr) {
+        std::istringstream is(envvar_value);
+        std::intmax_t max_iteration;
+
+        is >> max_iteration;
+
+        return max_iteration;
+    }
+    return 1000;
 }
 
 std::tuple<std::shared_ptr<std::istream>, std::shared_ptr<std::ostream>>
@@ -50,7 +65,9 @@ main(int argc, char const **argv) {
         PizzaProblem problem;
 
         *input >> problem;
-        *output << solve(problem) << std::endl;
+        *output << solve(problem, SolverOptions{
+            {"max-iteration", getMaxIteration()},
+        }) << std::endl;
     }
     
     return 0;
