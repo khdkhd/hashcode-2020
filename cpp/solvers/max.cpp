@@ -137,36 +137,6 @@ bool compareItemsReversed(const Item i1, const Item i2)
         return (i1.getValue() > i2.getValue());
 }
 
-Solution solveLarge(std::vector<Item> &items, const unsigned int maxWeight, const unsigned int batchSize = 8)
-{
-        const auto itemCount = items.size();
-        std::random_shuffle(items.begin(), items.end());
-
-        Solution solution;
-        for (auto i = 0; i < itemCount; i += batchSize)
-        {
-                const auto end = (i + batchSize) > (itemCount) ? itemCount : i + batchSize;
-
-                std::cerr << "From " << i << " to " << end << std::endl;
-
-                // Get random items
-                std::cerr << "New items:" << std::endl;
-                std::vector<Item> subproblem(&items[i], &items[end]);
-
-                // Add previous solution
-                std::cerr << "With previous solution:" << std::endl;
-                copy(solution.items.begin(), solution.items.end(), back_inserter(subproblem));
-
-                // std::sort(subproblem.begin(), subproblem.end(), compareItems);
-
-                solution = solve(subproblem, maxWeight);
-                std::cerr << "Intermediate solution" << std::endl
-                          << solution << std::endl
-                          << std::endl;
-        }
-        return solution;
-}
-
 Solution solveGreedy(const std::vector<Item> &items, const unsigned int maxWeight)
 {
         Solution solution;
@@ -335,15 +305,14 @@ Solution solveLarger2(std::vector<Item> &items, const unsigned int maxWeight, co
                         solution.items.push_back(item);
                 }
 
-                if (solution.weight == maxWeight)
-                {
-                        bestSolution = solution;
-                        break;
-                }
-
                 if (solution.value > bestSolution.value)
                 {
                         bestSolution = solution;
+                }
+
+                if (bestSolution.weight == maxWeight)
+                {
+                        break;
                 }
         }
         return bestSolution;
