@@ -1,154 +1,156 @@
 const fs = require('fs');
 
 const charset = 'utf-8';
-const eol = '\n';
-const tab = ' ';
+const eol = "\n";
+const tab = " ";
 
 const inputs = [
-    'inputs/a_example.in',
-    'inputs/b_small.in',
-    'inputs/c_medium.in',
-    'inputs/d_quite_big.in',
-    'inputs/e_also_big.in'
+    "a_example.txt",
+    "b_read_on.txt",
+    "c_incunabula.txt",
+    "d_tough_choices.txt",
+    "e_so_many_books.txt",
+    "f_libraries_of_the_world.txt"
 ];
 
 function chunkToNumbers(line) {
     return line.split(tab).map(Number)
 }
 
-function parse(file) {
-    const input = fs.readFileSync(file, charset);
-    const lines = input.split(eol);
-    const [maxCapacity, populationCount] = chunkToNumbers(lines.shift());
-    const weights = chunkToNumbers(lines.shift());
+function parse(filename) {
+    const data = fs.readFileSync(filename, charset).split(eol);
+    const [totalBooksCount, librariesCount, availableDays] = chunkToNumbers(data.shift());
+    const booksScores = chunkToNumbers(data.shift());
+    const libraries = [];
+    for (let i = 0; i < data.length; i += 2) {
+        const id = i / 2;
+        const [booksCount, signUpDuration, booksShippedPerDay] = chunkToNumbers(data.shift());
+        const bookIds = chunkToNumbers(data.shift()).sort((a, b) => booksScores[b] - booksScores[a]);
+        const maxScore = bookIds.reduce((a, i) => a + booksScores[i], 0);
+        libraries.push({
+            id,
+            booksCount,
+            maxScore,
+            signUpDuration,
+            booksShippedPerDay,
+            bookIds,
+            booksScores,
+            availableDays
+        })
+    }
     return {
-        maxCapacity, populationCount, weights, file
+        filename,
+        totalBooksCount,
+        booksScores,
+        librariesCount,
+        availableDays,
+        libraries
     }
 }
 
-function partition(items, spacing = 16) {
-    const output = [];
-    for (let i = 0; i < items.length; i += spacing) {
-        output[output.length] = items.slice(i, i + spacing);
-    }
-    return output;
+function chooseBook(bookIds, knownBooks) {
+    do {
+        const bookId = bookIds.pop();
+        if (!knownBooks.includes(bookId)) {
+            return bookId;
+        }
+    } while (bookIds.length >= 0);
+
+    return -1;
 }
 
-function randomInt(max) {
-    return Math.floor(Math.random() * Math.floor(max))
+function createIterativeEvaluator() {
+    const knownBooks = [];
+
+    return ({ signUpDuration, booksShippedPerDay, bookIds, booksScores, availableDays }) => {
+        let score = 0;
+        for (let i = availableDays - signUpDuration, j = bookIds.length - 1; i >= 0 && j >= 0; --i, --j) {
+            const bookId = bookIds[j];
+            if (!knownBooks.includes(bookIds)) {
+                score += booksScores[bookId];
+                knownBooks.push(bookId);
+            }
+        }
+        return score;
+    };
 }
 
-// Fisher–Yates shuffle algorithm
-function shuffle(list = []) {
-    for (let i = list.length - 1; i > 0; i--) {
-        const j = randomInt(i + 1);
-        [list[i], list[j]] = [list[j], list[i]]
-    }
-    return list
+
+// function formulaEvaluator({ signUpDuration, booksShippedPerDay, maxScore }) {
+//     return 1 - signUpDuration / (maxScore * booksShippedPerDay);
+// }
+
+function compareLibraries(a, b) {
+    const evaluate = createIterativeEvaluator();
+    return evaluate(b) - evaluate(a);
 }
 
-function dump(items, filePath) {
-    fs.writeFileSync(filePath, `${ items.length }\n${ items.reverse().join(' ') }\n`);
-}
-
-function createNode(level, weight) {
+function initializeSubSolution(library) {
     return {
-        level,
-        weight
+        id: library.id,
+        booksCount: 0,
+        bookIds: []
     }
 }
 
-function initializeSolution(weight, index) {
-    return {
-        score: weight,
-        items: weight === 0 ? [] : [index]
-    }
+function initializeSolution(filename) {
+    return { filename, subSolutions: [] };
 }
 
-function evaluate({ maxCapacity, populationCount, weights }, { level, weight }) {
-    const solution = initializeSolution(weight, populationCount - level);
-    for (let i = populationCount - (level + 1); i >= 0; --i) {
-        const w = weights[i];
-        if (solution.score + w <= maxCapacity) {
-            solution.score += w;
-            solution.items.push(i);
-        }
-    }
-    return solution;
-}
+function solve({ totalBooksCount, booksScores, librariesCount, availableDays, libraries, filename }) {
+    const solution = initializeSolution(filename), knownBooks = [];
 
-function maxSolution(a, b) {
-    return a.score >= b.score ? a : b;
-}
+    for (let i = availableDays; i >= 0; --i) {
+        for (const library of libraries) {
+            --library.signUpDuration;
 
-function optimisticSolver({ maxCapacity, populationCount, weights }) {
-    let solution = initializeSolution(0);
+            if (library.signUpDuration > 0) {
+                continue;
+            }
 
-    for (let i = 1; i < populationCount; ++i) {
-        const leftNode = createNode(i, weights[populationCount - i]);
-        const rightNode = createNode(i, 0);
-        const leftSolution = evaluate({ maxCapacity, populationCount, weights }, leftNode);
-        const rightSolution = evaluate({ maxCapacity, populationCount, weights }, rightNode);
-        const localMaximum = maxSolution(leftSolution, rightSolution);
-        if (localMaximum.score > solution.score) {
-            solution = localMaximum;
-        }
-    }
-    return solution;
-}
+            if (library.bookIds.length === 0) {
+                continue;
+            }
 
-function solve({ maxCapacity = 0, populationCount = 0, weights = [] }) {
-    return optimisticSolver({ maxCapacity, populationCount, weights })
-}
+            let subSolution;
 
-function computeGap({ maxCapacity, solution }) {
-    return maxCapacity - solution.score;
-}
+            if (library.signUpDuration === 0) {
+                subSolution = initializeSubSolution(library);
+                solution.subSolutions.push(subSolution);
+            } else {
+                subSolution = solution.subSolutions.find(s => s.id === library.id);
+            }
 
-function shuffleInstance(instance, partitionSize) {
-    instance.weights = partition([...instance.weights], partitionSize).flatMap(shuffle)
-}
-
-function refine(instances = []) {
-    if (instances.length === 0) {
-        return [];
-    }
-
-    for (const instance of instances) {
-        const score = instance.solution.score;
-
-        if (computeGap(instance) === 0) {
-            continue;
-        }
-
-        for (let i = 2; i < Math.floor(instance.weights.length / 2); i += 2) {
-            shuffleInstance(instance, i);
-            const solution = solve(instance);
-            if (solution.score > score) {
-                instance.solution = solution;
+            for (let book = library.booksShippedPerDay; book > 0; --book) {
+                const bookId = chooseBook(library.bookIds, knownBooks);
+                if (bookId > 0) {
+                    subSolution.bookIds.push(bookId);
+                    subSolution.booksCount = subSolution.bookIds.length;
+                    knownBooks.push(bookId);
+                }
             }
         }
     }
+    solution.subSolutions = solution.subSolutions.filter(library => library.booksCount > 0);
+    return solution;
+}
+
+function dump({ subSolutions, filename }) {
+    let output = `${ subSolutions.length }\n`;
+    for (const library of subSolutions) {
+        output += `${ library.id } ${ library.booksCount }\n`;
+        output += `${ library.bookIds.join(' ') }\n`
+    }
+    fs.writeFileSync(`${ filename }.out`, output);
 }
 
 function run() {
-    const instances = inputs.map(parse);
-    for (const instance of instances) {
-        instance.solution = solve(instance);
+    for (const input of inputs) {
+        const instance = parse(input);
+        instance.libraries.sort(compareLibraries);
+        dump(solve(instance));
     }
-
-    const startTime = new Date().getTime();
-    const executionTimeInMillis = 1000 * 60 * 30;
-
-    while(new Date().getTime() - startTime < executionTimeInMillis) {
-        refine(instances);
-    }
-
-    for (const instance of instances) {
-        console.log(`score=${instance.solution.score}, gap=${computeGap(instance)}`);
-        dump(instance.solution.items, `${instance.file}.out`)
-    }
-
 }
+
 
 run();
