@@ -1,4 +1,5 @@
 const fs = require('fs');
+const cluster = require('cluster');
 
 const charset = 'utf-8';
 const eol = "\n";
@@ -140,5 +141,24 @@ function run() {
     console.log('total score', numberFormat.format(totalScore));
 }
 
-
-run();
+let i = 0;
+if(cluster.isMaster) {
+    let totalScore = 0;
+    const start = new Date().getTime();
+    for (const input of inputs) {
+        const worker = cluster.fork({ input });
+        worker.on('message', (solution) => {
+            console.log(solution.filename.substring(0, 1), numberFormat.format(solution.score));
+            totalScore += solution.score;
+            console.log('total score', numberFormat.format(totalScore));
+            console.log('time elapsed', (new Date().getTime() - start) / 1000, 'seconds');
+        });
+    }
+} else {
+    const input = process.env.input;
+    const instance = parse(input);
+    instance.libraries.sort(compareLibraries);
+    const solution = solve(instance);
+    dump(solution);
+    process.send(solution)
+}
