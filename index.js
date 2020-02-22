@@ -3,6 +3,7 @@ const fs = require('fs');
 const charset = 'utf-8';
 const eol = "\n";
 const tab = " ";
+const numberFormat = new Intl.NumberFormat('en-IN');
 
 const inputs = [
     "a_example.txt",
@@ -26,16 +27,16 @@ function parse(filename) {
         const id = i / 2;
         const [booksCount, signUpDuration, booksShippedPerDay] = chunkToNumbers(data.shift());
         const bookIds = chunkToNumbers(data.shift()).sort((a, b) => booksScores[b] - booksScores[a]);
-        const maxScore = bookIds.reduce((a, i) => a + booksScores[i], 0);
+        const roughScore = bookIds.reduce((a, i) => a + booksScores[i], 0);
         libraries.push({
             id,
             booksCount,
-            maxScore,
             signUpDuration,
             booksShippedPerDay,
             bookIds,
             booksScores,
-            availableDays
+            availableDays,
+            roughScore
         })
     }
     return {
@@ -59,31 +60,14 @@ function chooseBook(bookIds, knownBooks) {
     return -1;
 }
 
-function createIterativeEvaluator() {
-    const knownBooks = [];
-
-    return ({ signUpDuration, booksShippedPerDay, bookIds, booksScores, availableDays }) => {
-        let score = 0;
-        for (let i = availableDays - signUpDuration, j = bookIds.length - 1; i >= 0 && j >= 0; --i, --j) {
-            const bookId = bookIds[j];
-            if (!knownBooks.includes(bookIds)) {
-                score += booksScores[bookId];
-                knownBooks.push(bookId);
-            }
-        }
-        return score;
-    };
+function formulaEvaluator({ signUpDuration, booksShippedPerDay, roughScore }) {
+    return 1 - signUpDuration / (roughScore * booksShippedPerDay );
 }
-
-
-// function formulaEvaluator({ signUpDuration, booksShippedPerDay, maxScore }) {
-//     return 1 - signUpDuration / (maxScore * booksShippedPerDay);
-// }
 
 function compareLibraries(a, b) {
-    const evaluate = createIterativeEvaluator();
-    return evaluate(b) - evaluate(a);
+    return formulaEvaluator(b) - formulaEvaluator(a);
 }
+
 
 function initializeSubSolution(library) {
     return {
@@ -94,44 +78,43 @@ function initializeSubSolution(library) {
 }
 
 function initializeSolution(filename) {
-    return { filename, subSolutions: [] };
+    return { filename, subSolutions: [], score: 0 };
 }
 
 function solve({ totalBooksCount, booksScores, librariesCount, availableDays, libraries, filename }) {
-    const solution = initializeSolution(filename), knownBooks = [];
+    const solution = initializeSolution(filename);
+    const knownBooks = [];
 
-    for (let i = availableDays; i >= 0; --i) {
-        for (const library of libraries) {
-            --library.signUpDuration;
+    dayIterator:
+        for (let i = availableDays; i > 0; --i) {
+            for (const library of libraries) {
+                if (library.signUpDuration > 0) {
+                    --library.signUpDuration;
+                    continue dayIterator;
+                }
 
-            if (library.signUpDuration > 0) {
-                continue;
-            }
+                if (library.bookIds.length === 0) {
+                    continue;
+                }
 
-            if (library.bookIds.length === 0) {
-                continue;
-            }
+                let subSolution = solution.subSolutions[library.id];
+                if (!subSolution) {
+                    subSolution = initializeSubSolution(library);
+                    solution.subSolutions[library.id] = subSolution;
+                }
 
-            let subSolution;
-
-            if (library.signUpDuration === 0) {
-                subSolution = initializeSubSolution(library);
-                solution.subSolutions.push(subSolution);
-            } else {
-                subSolution = solution.subSolutions.find(s => s.id === library.id);
-            }
-
-            for (let book = library.booksShippedPerDay; book > 0; --book) {
-                const bookId = chooseBook(library.bookIds, knownBooks);
-                if (bookId > 0) {
-                    subSolution.bookIds.push(bookId);
-                    subSolution.booksCount = subSolution.bookIds.length;
-                    knownBooks.push(bookId);
+                for (let book = library.booksShippedPerDay; book > 0; --book) {
+                    const bookId = chooseBook(library.bookIds, knownBooks);
+                    if (bookId > 0) {
+                        subSolution.bookIds.push(bookId);
+                        subSolution.booksCount = subSolution.bookIds.length;
+                        solution.score += booksScores[bookId];
+                        knownBooks.push(bookId);
+                    }
                 }
             }
         }
-    }
-    solution.subSolutions = solution.subSolutions.filter(library => library.booksCount > 0);
+    solution.subSolutions = solution.subSolutions.filter(library => library && library.booksCount > 0);
     return solution;
 }
 
@@ -145,11 +128,16 @@ function dump({ subSolutions, filename }) {
 }
 
 function run() {
+    let totalScore = 0;
     for (const input of inputs) {
         const instance = parse(input);
         instance.libraries.sort(compareLibraries);
-        dump(solve(instance));
+        const solution = solve(instance);
+        totalScore += solution.score;
+        dump(solution);
+        console.log(solution.filename.substring(0, 1), numberFormat.format(solution.score));
     }
+    console.log('total score', numberFormat.format(totalScore));
 }
 
 
